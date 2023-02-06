@@ -1,0 +1,248 @@
+<html>
+
+<head>
+    <title>法務省地図XML（PMTiles）</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/pmtiles@2.7.0/dist/index.js"></script>
+    <script src="https://unpkg.com/deck.gl@^8.8.0/dist.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        #info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            overflow: auto;
+            margin: 0px auto;
+            border: none;
+            background: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <pre id="info"></pre>
+    <!-- Load the `maplibre-gl-geocoder` plugin. -->
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.css"
+        type="text/css" />
+    <script type="text/javascript">
+        // add the PMTiles plugin to the maplibregl global.
+        let protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+
+        // let PMTILES_URL = "https://protomaps.github.io/PMTiles/protomaps(vector)ODbL_firenze.pmtiles";
+        let PMTILES_URL = "https://x.optgeo.org/a.pmtiles";
+
+        const p = new pmtiles.PMTiles(PMTILES_URL)
+
+        // this is so we share one instance across the JS code and the map renderer
+        protocol.add(p);
+
+        // we first fetch the header so we can get the center lon, lat of the map.
+        p.getHeader().then(h => {
+            const map = new maplibregl.Map({
+                container: 'map',
+                style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
+                zoom: h.maxZoom - 2,
+                center: [h.centerLon, h.centerLat]
+            })
+
+            // ズーム・回転
+            map.addControl(new maplibregl.NavigationControl());
+
+            // フルスクリーンモードのオンオフ
+            map.addControl(new maplibregl.FullscreenControl());
+
+            // スケール表示
+            map.addControl(new maplibregl.ScaleControl({
+                maxWidth: 200,
+                unit: 'metric'
+            }));
+
+            // ジオコーダー追加
+            var geocoder_api = {
+                forwardGeocode: async (config) => {
+                    const features = [];
+                    try {
+                        let request =
+                            'https://nominatim.openstreetmap.org/search?q=' +
+                            config.query +
+                            '&format=geojson&polygon_geojson=1&addressdetails=1';
+                        const response = await fetch(request);
+                        const geojson = await response.json();
+                        for (let feature of geojson.features) {
+                            let center = [
+                                feature.bbox[0] +
+                                (feature.bbox[2] - feature.bbox[0]) / 2,
+                                feature.bbox[1] +
+                                (feature.bbox[3] - feature.bbox[1]) / 2
+                            ];
+                            let point = {
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: center
+                                },
+                                place_name: feature.properties.display_name,
+                                properties: feature.properties,
+                                text: feature.properties.display_name,
+                                place_type: ['place'],
+                                center: center
+                            };
+                            features.push(point);
+                        }
+                    } catch (e) {
+                        console.error(`Failed to forwardGeocode with error: ${e}`);
+                    }
+
+                    return {
+                        features: features
+                    };
+                }
+            };
+
+            map.addControl(
+                new MaplibreGeocoder(geocoder_api, {
+                    maplibregl: maplibregl
+                }), 'top-left');
+
+            map.on('load', () => {
+                // 法務省地図XMLベクトルタイル追加
+                map.addSource("pmtiles", {
+                    type: "vector",
+                    url: "pmtiles://" + PMTILES_URL,
+                    attribution: '© <a href="https://github.com/amx-project">法務省地図XMLアダプトプロジェクト ベクトルタイル</a>'
+                });
+
+                // 代表点レイヤ表示
+                map.addLayer({
+                    "id": "daihyo-1",
+                    "source": "pmtiles",
+                    "source-layer": "daihyo",
+                    "type": "circle",
+                    'paint': {
+                        'circle-color': 'rgba(0, 203, 0, 0.6)',
+                        'circle-blur': 0.8,
+                        //'circle-radius': 4
+                        'circle-radius': 4
+                    }
+                });
+
+                // 代表点レイヤ表示
+                map.addLayer({
+                    "id": "daihyo-2",
+                    "source": "pmtiles",
+                    "source-layer": "daihyo",
+                    "type": "circle",
+                    'paint': {
+                        'circle-color': 'rgba(204, 255, 204, 1)',
+                        //'circle-radius': 1
+                        'circle-radius': 2
+                    }
+                });
+
+                // 筆レイヤ表示
+                map.addLayer({
+                    "id": "fude-line",
+                    "source": "pmtiles",
+                    "source-layer": "fude",
+                    "type": "line",
+                    "paint": {
+                        'line-color': '#00CB00',
+                        'line-width': 1,
+                    }
+                });
+
+                // 筆レイヤ表示
+                map.addLayer({
+                    "id": "fude-poligon",
+                    "source": "pmtiles",
+                    "source-layer": "fude",
+                    "type": "fill",
+                    "paint": {
+                        'fill-color': '#00CB00',
+                        'fill-opacity': 0.1,
+                    }
+                });
+
+                // const { MapboxLayer, MVTLayer } = deck;
+                /*
+                const mvtLayer = new MapboxLayer({
+                    id: 'plateau-building-mvt',
+                    type: MVTLayer,
+                    data: `https://indigo-lab.github.io/plateau-lod2-mvt/{z}/{x}/{y}.pbf`,
+                    minZoom: 0,
+                    maxZoom: 23,
+                    opacity: 0.3,
+                    getFillColor: [255, 255, 255, 255],
+                    lineWidthMinPixels: 1,
+                    pickable: true,
+                    extruded: true,
+                    //押出をonにする
+                    //autoHighlight: true,
+                    //highlightColor: [255, 0, 0],
+                    getElevation: d => d.properties.z,
+                    //getElevation: d => d.properties.measuredHeight,
+                    //getElevation: d => d.properties.bldg_measuredHeight,
+                    wireframe: true,
+                    //lineを有効にする
+                    lineWidthMinPixels: 1,
+                    getLineColor: [0, 0, 0],
+                    material: {
+                        //立体ポリゴンのマテリアルを設定
+                        ambient: 0.1,
+                        diffuse: 0.9,
+                        shininess: 32,
+                        specularColor: [30, 30, 30]
+                    }
+                });
+                map.addLayer(mvtLayer);
+                */
+
+                map.showTileBoundaries = true;
+            })
+
+            map.on('click', 'fude-poligon', (e) => {
+                new maplibregl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML('座標系: ' + e.features[0].properties['座標系'] +
+                        '<br>' + '測地系判別: ' + e.features[0].properties['測地系判別'] +
+                        '<br>' + '地図名: ' + e.features[0].properties['地図名'] +
+                        '<br>' + '地図番号: ' + e.features[0].properties['地図番号'] +
+                        '<br>' + '縮尺分母: ' + e.features[0].properties['縮尺分母'] +
+                        '<br>' + '市区町村コード: ' + e.features[0].properties['市区町村コード'] +
+                        '<br>' + '市区町村名: ' + e.features[0].properties['市区町村名'] +
+                        '<br>' + '大字コード: ' + e.features[0].properties['大字コード'] +
+                        '<br>' + '丁目コード: ' + e.features[0].properties['丁目コード'] +
+                        '<br>' + '小字コード: ' + e.features[0].properties['小字コード'] +
+                        '<br>' + '予備コード: ' + e.features[0].properties['予備コード'] +
+                        '<br>' + '大字名: ' + e.features[0].properties['大字名'] +
+                        '<br>' + '地番: ' + e.features[0].properties['地番'] +
+                        '<br>' + '精度区分: ' + e.features[0].properties['精度区分'] +
+                        '<br>' + '座標値種別: ' + e.features[0].properties['座標値種別'])
+                    .addTo(map);
+            });
+
+            map.on('mouseenter', 'fude', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'fude', () => {
+                map.getCanvas().style.cursor = '';
+            });
+        })
+    </script>
+</body>
+
+</html>
