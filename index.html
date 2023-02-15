@@ -27,12 +27,49 @@
             border: none;
             background: rgba(255, 255, 255, 0.8);
         }
+
+        .map-overlay {
+            font: bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 10%;
+            top: 0;
+            right: 0;
+            padding: 10px;
+        }
+
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .map-overlay label {
+            display: block;
+            margin: 0 0 10px;
+        }
+
+        .map-overlay input {
+            background-color: transparent;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            margin: 0;
+            cursor: ew-resize;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
     <pre id="info"></pre>
+    <div class="map-overlay top">
+        <div class="map-overlay-inner">
+            <label>空中写真 不透明度: <span id="slider-value">100%</span></label>
+            <input id="slider" type="range" min="0" max="100" step="0" value="100">
+        </div>
+    </div>
     <!-- Load the `maplibre-gl-geocoder` plugin. -->
     <script src="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@maplibre/maplibre-gl-geocoder@1.2.0/dist/maplibre-gl-geocoder.css"
@@ -43,7 +80,6 @@
         maplibregl.addProtocol("pmtiles", protocol.tile);
 
         // let PMTILES_URL = "https://protomaps.github.io/PMTiles/protomaps(vector)ODbL_firenze.pmtiles";
-        // let PMTILES_URL = "https://habs.rad.naro.go.jp/spatial_data/amx/a.pmtiles";
         let PMTILES_URL = "https://x.optgeo.org/ipfs/QmTZHWMAnRC5zNiNvdVuTDacThKkj4jKbwsZtKQkAC4R69";
 
         const p = new pmtiles.PMTiles(PMTILES_URL)
@@ -61,18 +97,6 @@
             center: [139.4677687, 35.8887418]
         })
 
-        // ズーム・回転
-        map.addControl(new maplibregl.NavigationControl());
-
-        // フルスクリーンモードのオンオフ
-        map.addControl(new maplibregl.FullscreenControl());
-
-        // スケール表示
-        map.addControl(new maplibregl.ScaleControl({
-            maxWidth: 200,
-            unit: 'metric'
-        }));
-
         // 現在位置表示
         map.addControl(new maplibregl.GeolocateControl({
             positionOptions: {
@@ -81,6 +105,18 @@
             fitBoundsOptions: { maxZoom: 9 },
             trackUserLocation: true,
             showUserLocation: true
+        }), 'bottom-right');
+
+        // フルスクリーンモードのオンオフ
+        map.addControl(new maplibregl.FullscreenControl(), 'bottom-right');
+
+        // ズーム・回転
+        map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+
+        // スケール表示
+        map.addControl(new maplibregl.ScaleControl({
+            maxWidth: 200,
+            unit: 'metric'
         }));
 
         // ジオコーダー追加
@@ -130,7 +166,38 @@
                 maplibregl: maplibregl
             }), 'top-left');
 
+
+        const slider = document.getElementById('slider');
+        const sliderValue = document.getElementById('slider-value');
+
         map.on('load', () => {
+
+            // 全国最新写真（シームレス）
+            map.addSource('seamlessphoto', {
+                type: 'raster',
+                tiles: ['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'],
+                tileSize: 256,
+            });
+
+            map.addLayer({
+                id: 'seamlessphoto',
+                type: 'raster',
+                source: 'seamlessphoto',
+                minzoom: 14,
+                maxzoom: 23,
+            });
+
+            // スライダーで透明度を設定
+            slider.addEventListener('input', (e) => {
+                map.setPaintProperty(
+                    'seamlessphoto',
+                    'raster-opacity',
+                    parseInt(e.target.value, 10) / 100
+                );
+
+                sliderValue.textContent = e.target.value + '%';
+            });
+
             // 法務省地図XMLベクトルタイル追加
             map.addSource("pmtiles", {
                 type: "vector",
@@ -224,9 +291,12 @@
             */
 
             map.showTileBoundaries = true;
+
         })
 
         map.on('click', 'fude-poligon', (e) => {
+            lng = e.lngLat.lng;
+            lat = e.lngLat.lat;
             new maplibregl.Popup()
                 .setLngLat(e.lngLat)
                 .setHTML('座標系: ' + e.features[0].properties['座標系'] +
@@ -243,7 +313,8 @@
                     '<br>' + '大字名: ' + e.features[0].properties['大字名'] +
                     '<br>' + '地番: ' + e.features[0].properties['地番'] +
                     '<br>' + '精度区分: ' + e.features[0].properties['精度区分'] +
-                    '<br>' + '座標値種別: ' + e.features[0].properties['座標値種別'])
+                    '<br>' + '座標値種別: ' + e.features[0].properties['座標値種別'] +
+                    '<br>' + '<a href=\https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja' target='_blank'>🌎Google Maps</a>")
                 .addTo(map);
         });
 
