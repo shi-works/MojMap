@@ -31,8 +31,8 @@
         .map-overlay {
             font: bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
             position: absolute;
-            width: 20%;
-            bottom: 25px;
+            width: 10%;
+            top: 0;
             left: 0;
             padding: 10px;
         }
@@ -164,7 +164,7 @@
         map.addControl(
             new MaplibreGeocoder(geocoder_api, {
                 maplibregl: maplibregl
-            }), 'top-left');
+            }), 'bottom-left');
 
 
         const slider = document.getElementById('slider');
