@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/pmtiles@2.7.0/dist/index.js"></script>
-    <script src="https://unpkg.com/deck.gl@^8.8.0/dist.min.js"></script>
+    <!--<script src="https://unpkg.com/deck.gl@^8.8.0/dist.min.js"></script>-->
     <style>
         body {
             margin: 0;
@@ -32,7 +32,7 @@
             font: bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
             position: absolute;
             width: auto;
-            bottom: 25px;
+            bottom: 50px;
             left: 0;
             padding: 10px;
         }
@@ -94,8 +94,17 @@
             zoom: 12,
             maxZoom: 23,
             minZoom: 4,
-            center: [139.4677687, 35.8887418]
+            center: [139.4677687, 35.8887418],
+            maplibreLogo: true,
+            // 既存Attributionを非表示
+            attributionControl: false
         })
+
+        // ズーム・回転
+        map.addControl(new maplibregl.NavigationControl());
+
+        // フルスクリーンモードのオンオフ
+        map.addControl(new maplibregl.FullscreenControl());
 
         // 現在位置表示
         map.addControl(new maplibregl.GeolocateControl({
@@ -105,18 +114,17 @@
             fitBoundsOptions: { maxZoom: 9 },
             trackUserLocation: true,
             showUserLocation: true
-        }), 'bottom-right');
-
-        // フルスクリーンモードのオンオフ
-        map.addControl(new maplibregl.FullscreenControl(), 'bottom-right');
-
-        // ズーム・回転
-        map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+        }));
 
         // スケール表示
         map.addControl(new maplibregl.ScaleControl({
             maxWidth: 200,
             unit: 'metric'
+        }));
+
+        // Attributionを折りたたみ表示
+        map.addControl(new maplibregl.AttributionControl({
+            compact: true
         }));
 
         // ジオコーダー追加
@@ -177,6 +185,7 @@
                 type: 'raster',
                 tiles: ['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'],
                 tileSize: 256,
+                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html#seamlessphoto">全国最新写真（シームレス）</a>'
             });
 
             map.addLayer({
@@ -187,7 +196,7 @@
                 maxzoom: 23,
             });
 
-            // スライダーで透明度を設定
+            // スライダーで不透明度を設定
             slider.addEventListener('input', (e) => {
                 map.setPaintProperty(
                     'seamlessphoto',
@@ -202,7 +211,7 @@
             map.addSource("pmtiles", {
                 type: "vector",
                 url: "pmtiles://" + PMTILES_URL,
-                attribution: '© <a href="https://github.com/amx-project">法務省地図XMLアダプトプロジェクト ベクトルタイル</a>'
+                attribution: '<a href="https://github.com/amx-project">法務省地図XMLアダプトプロジェクト ベクトルタイル</a>'
             });
 
             // 代表点レイヤ表示
@@ -239,7 +248,7 @@
                 "source-layer": "fude",
                 "type": "line",
                 "paint": {
-                    'line-color': '#00CB00',
+                    'line-color': '#FF0000',
                     'line-width': 1,
                 }
             });
@@ -251,8 +260,8 @@
                 "source-layer": "fude",
                 "type": "fill",
                 "paint": {
-                    'fill-color': '#00CB00',
-                    'fill-opacity': 0.1,
+                    'fill-color': '#FFF2CC',
+                    'fill-opacity': 0.2,
                 }
             });
 
@@ -290,7 +299,7 @@
             map.addLayer(mvtLayer);
             */
 
-            map.showTileBoundaries = true;
+            // map.showTileBoundaries = true;
 
         })
 
