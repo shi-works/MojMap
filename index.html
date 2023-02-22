@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/pmtiles@2.7.0/dist/index.js"></script>
+    <link href='https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.css' rel='stylesheet' />
+    <script src='https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.js'></script>
+    <script src="https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.js"></script>
     <!--<script src="https://unpkg.com/deck.gl@^8.8.0/dist.min.js"></script>-->
     <style>
         body {
@@ -16,16 +19,6 @@
         #map {
             height: 100%;
             width: 100%;
-        }
-
-        #info {
-            position: absolute;
-            top: 0;
-            right: 0;
-            overflow: auto;
-            margin: 0px auto;
-            border: none;
-            background: rgba(255, 255, 255, 0.8);
         }
 
         .map-overlay {
@@ -58,12 +51,22 @@
             margin: 0;
             cursor: ew-resize;
         }
+
+        .maplibregl-popup .maplibregl-popup-content {
+            padding: 8px 10px;
+            font: 12px/14px Arial, Helvetica, sans-serif;
+            color: black;
+            background: white;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
+            width: 240x;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
-    <pre id="info"></pre>
     <div class="map-overlay top">
         <div class="map-overlay-inner">
             <label>空中写真 撮影時期: <span id="slider-year-value">全国最新写真</span></label>
@@ -101,6 +104,8 @@
             // 既存Attributionを非表示
             attributionControl: false
         })
+
+        var hoveredStateId = null;
 
         // ズーム・回転
         map.addControl(new maplibregl.NavigationControl());
@@ -175,6 +180,17 @@
             new MaplibreGeocoder(geocoder_api, {
                 maplibregl: maplibregl
             }), 'top-left');
+
+        // maplibre-gl-export
+        map.addControl(new MaplibreExportControl({
+            PageSize: Size.A4,
+            PageOrientation: PageOrientation.Portrait,
+            Format: Format.PNG,
+            DPI: DPI[96],
+            Crosshair: true,
+            PrintableArea: true,
+            Local: 'en'
+        }), 'top-right');
 
         const sliderOpactiy = document.getElementById('slider-opacity');
         const sliderOpactiyValue = document.getElementById('slider-opacity-value');
@@ -477,19 +493,7 @@
                 }
             });
 
-            // 筆レイヤ
-            map.addLayer({
-                "id": "fude-line",
-                "source": "pmtiles",
-                "source-layer": "fude",
-                "type": "line",
-                "paint": {
-                    'line-color': '#FF0000',
-                    'line-width': 1,
-                }
-            });
-
-            // 筆レイヤ
+            // 筆レイヤ（ポリゴン）
             map.addLayer({
                 "id": "fude-poligon",
                 "source": "pmtiles",
@@ -497,7 +501,25 @@
                 "type": "fill",
                 "paint": {
                     'fill-color': '#FFF2CC',
-                    'fill-opacity': 0.2,
+                    // 'fill-opacity': 0.2,
+                    'fill-opacity': [
+                        'case',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        1,
+                        0.2
+                    ]
+                }
+            });
+
+            // 筆レイヤ（ライン）
+            map.addLayer({
+                "id": "fude-line",
+                "source": "pmtiles",
+                "source-layer": "fude",
+                "type": "line",
+                "paint": {
+                    'line-color': '#FF3232',
+                    'line-width': 1
                 }
             });
 
@@ -537,39 +559,74 @@
 
             // map.showTileBoundaries = true;
 
+            // ポップアップ表示
+            map.on('click', 'fude-poligon', (e) => {
+                var lng = e.lngLat.lng;
+                var lat = e.lngLat.lat;
+
+                var zahyokei = e.features[0].properties['座標系'];
+                var sokuchikeihambetsu = e.features[0].properties['測地系判別'];
+                var chizumei = e.features[0].properties['地図名'];
+                var chizubango = e.features[0].properties['地図番号'];
+                var shukushakubumbo = e.features[0].properties['縮尺分母'];
+                var shikuchosonkodo = e.features[0].properties['市区町村コード'];
+                var shikuchosommei = e.features[0].properties['市区町村名'];
+                var oazakodo = e.features[0].properties['大字コード'];
+                var chomokukodo = e.features[0].properties['丁目コード'];
+                var koazakodo = e.features[0].properties['小字コード'];
+                var yobikodo = e.features[0].properties['予備コード'];
+                var oazamei = e.features[0].properties['大字名'];
+                var chiban = e.features[0].properties['地番'];
+                var seidokubun = e.features[0].properties['精度区分'];
+                var zahyochishubetsu = e.features[0].properties['座標値種別'];
+
+                if (zahyokei === undefined) { zahyokei = "-" };
+                if (sokuchikeihambetsu === undefined) { sokuchikeihambetsu = "-" };
+                if (chizumei === undefined) { chizumei = "-" };
+                if (chizubango === undefined) { chizubango = "-" };
+                if (shukushakubumbo === undefined) { shukushakubumbo = "-" };
+                if (shikuchosonkodo === undefined) { shikuchosonkodo = "-" };
+                if (shikuchosommei === undefined) { shikuchosommei = "-" };
+                if (oazakodo === undefined) { oazakodo = "-" };
+                if (chomokukodo === undefined) { chomokukodo = "-" };
+                if (koazakodo === undefined) { koazakodo = "-" };
+                if (yobikodo === undefined) { yobikodo = "-" };
+                if (oazamei === undefined) { oazamei = "-" };
+                if (chiban === undefined) { chiban = "-" };
+                if (seidokubun === undefined) { seidokubun = "-" };
+                if (zahyochishubetsu === undefined) { zahyochishubetsu = "-" };
+
+                new maplibregl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML('座標系: ' + zahyokei + '<br>'
+                        + '測地系判別: ' + sokuchikeihambetsu + '<br>'
+                        + '地図名: ' + chizumei + '<br>'
+                        + '地図番号: ' + chizubango + '<br>'
+                        + '縮尺分母: ' + shukushakubumbo + '<br>'
+                        + '市区町村コード: ' + shikuchosonkodo + '<br>'
+                        + '市区町村名: ' + shikuchosommei + '<br>'
+                        + '大字コード: ' + oazakodo + '<br>'
+                        + '丁目コード: ' + chomokukodo + '<br>'
+                        + '小字コード: ' + koazakodo + '<br>'
+                        + '予備コード: ' + yobikodo + '<br>'
+                        + '大字名: ' + oazamei + '<br>'
+                        + '地番: ' + chiban + '<br>'
+                        + '精度区分: ' + seidokubun + '<br>'
+                        + '座標値種別: ' + zahyochishubetsu + '<br>'
+                        + '座標: ' + lat.toFixed(7) + "," + lng.toFixed(7) + '<br>'
+                        + '<a href=\https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja' target='_blank'>🌎Google Maps</a>")
+                    .addTo(map);
+            });
+
+            map.on('mouseenter', 'fude', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'fude', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
         })
-
-        map.on('click', 'fude-poligon', (e) => {
-            lng = e.lngLat.lng;
-            lat = e.lngLat.lat;
-            new maplibregl.Popup()
-                .setLngLat(e.lngLat)
-                .setHTML('座標系: ' + e.features[0].properties['座標系'] +
-                    '<br>' + '測地系判別: ' + e.features[0].properties['測地系判別'] +
-                    '<br>' + '地図名: ' + e.features[0].properties['地図名'] +
-                    '<br>' + '地図番号: ' + e.features[0].properties['地図番号'] +
-                    '<br>' + '縮尺分母: ' + e.features[0].properties['縮尺分母'] +
-                    '<br>' + '市区町村コード: ' + e.features[0].properties['市区町村コード'] +
-                    '<br>' + '市区町村名: ' + e.features[0].properties['市区町村名'] +
-                    '<br>' + '大字コード: ' + e.features[0].properties['大字コード'] +
-                    '<br>' + '丁目コード: ' + e.features[0].properties['丁目コード'] +
-                    '<br>' + '小字コード: ' + e.features[0].properties['小字コード'] +
-                    '<br>' + '予備コード: ' + e.features[0].properties['予備コード'] +
-                    '<br>' + '大字名: ' + e.features[0].properties['大字名'] +
-                    '<br>' + '地番: ' + e.features[0].properties['地番'] +
-                    '<br>' + '精度区分: ' + e.features[0].properties['精度区分'] +
-                    '<br>' + '座標値種別: ' + e.features[0].properties['座標値種別'] +
-                    '<br>' + '<a href=\https://www.google.com/maps?q=' + lat + "," + lng + "&hl=ja' target='_blank'>🌎Google Maps</a>")
-                .addTo(map);
-        });
-
-        map.on('mouseenter', 'fude', () => {
-            map.getCanvas().style.cursor = 'pointer';
-        });
-
-        map.on('mouseleave', 'fude', () => {
-            map.getCanvas().style.cursor = '';
-        });
     </script>
 </body>
 
