@@ -577,6 +577,7 @@
                 var koazakodo = e.features[0].properties['小字コード'];
                 var yobikodo = e.features[0].properties['予備コード'];
                 var oazamei = e.features[0].properties['大字名'];
+                var koazamei = e.features[0].properties['小字名'];
                 var chiban = e.features[0].properties['地番'];
                 var seidokubun = e.features[0].properties['精度区分'];
                 var zahyochishubetsu = e.features[0].properties['座標値種別'];
@@ -593,6 +594,7 @@
                 if (koazakodo === undefined) { koazakodo = "-" };
                 if (yobikodo === undefined) { yobikodo = "-" };
                 if (oazamei === undefined) { oazamei = "-" };
+                if (koazamei === undefined) { koazamei = "-" };
                 if (chiban === undefined) { chiban = "-" };
                 if (seidokubun === undefined) { seidokubun = "-" };
                 if (zahyochishubetsu === undefined) { zahyochishubetsu = "-" };
@@ -611,6 +613,7 @@
                         + '小字コード: ' + koazakodo + '<br>'
                         + '予備コード: ' + yobikodo + '<br>'
                         + '大字名: ' + oazamei + '<br>'
+                        + '小字名: ' + koazamei + '<br>'
                         + '地番: ' + chiban + '<br>'
                         + '精度区分: ' + seidokubun + '<br>'
                         + '座標値種別: ' + zahyochishubetsu + '<br>'
