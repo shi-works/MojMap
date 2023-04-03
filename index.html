@@ -57,7 +57,7 @@
             font: 12px/14px Arial, Helvetica, sans-serif;
             color: black;
             background: white;
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
             border-radius: 5px;
             width: 240x;
@@ -97,10 +97,10 @@
             style: './std.json',
             // style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
             hash: true,
-            zoom: 14,
+            zoom: 15,
             maxZoom: 23,
             minZoom: 4,
-            center: [139.4677687, 35.8887418],
+            center: [139.5017292, 35.3977078],
             maplibreLogo: true,
             // 既存Attributionを非表示
             attributionControl: false
@@ -132,7 +132,8 @@
 
         // Attributionを折りたたみ表示
         map.addControl(new maplibregl.AttributionControl({
-            compact: true
+            compact: true,
+            customAttribution: '（<a href="https://twitter.com/syanseto" target="_blank">Twitter</a> | <a href="https://github.com/shi-works/MojMap" target="_blank">Github</a>） '
         }));
 
         // ジオコーダー追加
