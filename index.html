@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/pmtiles@2.7.0/dist/index.js"></script>
-    <link href='https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.css' rel='stylesheet' />
+    <!--<link href='https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.css' rel='stylesheet' />
     <script src='https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.js'></script>
-    <script src="https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.js"></script>
+    <script src="https://watergis.github.io/maplibre-gl-export/maplibre-gl-export.js"></script>-->
     <!--<script src="https://unpkg.com/deck.gl@^8.8.0/dist.min.js"></script>-->
     <style>
         body {
@@ -183,6 +183,7 @@
                 maplibregl: maplibregl
             }), 'top-left');
 
+        /*
         // maplibre-gl-export
         map.addControl(new MaplibreExportControl({
             PageSize: Size.A4,
@@ -193,6 +194,7 @@
             PrintableArea: true,
             Local: 'en'
         }), 'top-right');
+        */
 
         const sliderOpactiy = document.getElementById('slider-opacity');
         const sliderOpactiyValue = document.getElementById('slider-opacity-value');
